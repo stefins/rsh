@@ -1,5 +1,6 @@
 use std::io::BufRead;
 use std::path::Path;
+use std::process::exit;
 use std::sync::mpsc::{Receiver, Sender};
 use std::{
     env,
@@ -37,12 +38,12 @@ impl Shell {
 
     pub fn listen(&self) {
         loop {
-            print!("{} ", self.chr);
+            print!("\r{} ", self.chr);
             io::stdout().flush().unwrap();
             let mut command = String::new();
             let stdin = io::stdin();
             let mut handle = stdin.lock();
-            handle.read_line(&mut command).unwrap();
+            handle.read_line(&mut command).expect("EOF");
             Command::new(&self, command).execute().unwrap();
         }
     }
@@ -84,16 +85,20 @@ impl<'a> Command<'a> {
         if let Some(last) = self.commands.last_mut() {
             trim_newline(last)
         };
+        if self.commands[0] == "" {
+            exit(0);
+        }
         let child = std::process::Command::new(&self.bin_path)
             .args(&self.commands[1..])
-            .spawn()
-            .expect("Cannot execute command");
+            .spawn();
+        let child = child?;
         self.pid = child.id();
         self.set_interrupt_handler();
         let output = child.wait_with_output()?;
-        io::stdout().write_all(&output.stdout).unwrap();
-        io::stderr().write_all(&output.stderr).unwrap();
-        std::io::stdout().flush().unwrap();
+        io::stdout().write_all(&output.stdout)?;
+        io::stderr().write_all(&output.stderr)?;
+        io::stdout().flush()?;
+        io::stderr().flush()?;
         Ok(())
     }
 
