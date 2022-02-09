@@ -44,6 +44,9 @@ impl<'a> Command<'a> {
         if self.commands[0].is_empty() {
             exit(0);
         }
+        if self.pname == "cd" {
+            utils::change_dir(&self.commands[1])?
+        }
         let child = std::process::Command::new(&self.bin_path)
             .args(&self.commands[1..])
             .spawn();
