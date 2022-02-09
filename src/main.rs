@@ -1,29 +1,23 @@
 use std::io::BufRead;
 use std::path::Path;
-use std::process::exit;
+use std::sync::mpsc::{Receiver, Sender};
 use std::{
     env,
     io::{self, Write},
 };
 
-use libc::{signal, SIGINT, kill};
+use libc::{kill, SIGINT};
 
 fn main() {
-    unsafe {
-        signal(SIGINT, exit_handler as usize);
-    }
     let shell = Shell::new();
     shell.listen();
-}
-
-fn exit_handler() {
-    exit(0);
 }
 
 #[derive(Clone, Debug)]
 struct Shell {
     path: String,
     chr: char,
+    interrupter: Sender<i32>,
 }
 
 impl Shell {
@@ -33,7 +27,12 @@ impl Shell {
             Err(_) => panic!("$PATH not found"),
         };
         let chr = '$';
-        Shell { path, chr }
+        let interrupter = setup_interrupt_handler();
+        Shell {
+            path,
+            chr,
+            interrupter,
+        }
     }
 
     pub fn listen(&self) {
@@ -90,8 +89,8 @@ impl<'a> Command<'a> {
             .spawn()
             .expect("Cannot execute command");
         self.pid = child.id();
-        let output = child.wait_with_output()?;
         self.set_interrupt_handler();
+        let output = child.wait_with_output()?;
         io::stdout().write_all(&output.stdout).unwrap();
         io::stderr().write_all(&output.stderr).unwrap();
         std::io::stdout().flush().unwrap();
@@ -99,9 +98,7 @@ impl<'a> Command<'a> {
     }
 
     fn set_interrupt_handler(&self) {
-        unsafe {
-            signal(SIGINT, interrupt as usize );
-        }
+        self.shell.interrupter.send(self.pid as i32).unwrap();
     }
 }
 
@@ -114,8 +111,16 @@ fn trim_newline(s: &mut String) {
     }
 }
 
-fn interrupt (pid: i32) {
-    unsafe {
-        kill(pid, SIGINT);
-    }
+fn setup_interrupt_handler() -> Sender<i32> {
+    use std::sync::mpsc;
+    let (tx, rx): (Sender<i32>, Receiver<i32>) = mpsc::channel();
+    ctrlc::set_handler(move || {
+        for pid in rx.recv() {
+            unsafe {
+                kill(pid, SIGINT);
+            };
+        }
+    })
+    .expect("Cannot setup int handler!");
+    return tx;
 }

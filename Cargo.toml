@@ -7,3 +7,4 @@ edition = "2018"
 
 [dependencies]
 libc = "0.2"
+ctrlc = "3.2.1"
