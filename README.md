@@ -6,7 +6,7 @@ This is my attempt in writing a simple shell in Rust.
 
 - [x] Ctrl-C SIGINT Handler
 - [x] Changing directory using `cd`
-- [ ] Handle relative path 
+- [x] Handle relative path 
 - [ ] Capture keyboard signals
 
 

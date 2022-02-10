@@ -13,6 +13,7 @@ pub(crate) struct Command<'a> {
     pname: String,
     commands: Vec<String>,
     pid: u32,
+    available: bool,
 }
 
 impl<'a> Command<'a> {
@@ -22,10 +23,12 @@ impl<'a> Command<'a> {
         let mut pname = commands[0].to_string();
         utils::trim_newline(&mut pname);
         let paths: Vec<&str> = shell.path.split(':').collect();
+        let mut available = false;
         for pth in paths {
             let path = format!("{}/{}", pth, pname);
             if Path::new(&path).exists() {
                 bin_path = path;
+                available = true;
                 break;
             }
         }
@@ -35,10 +38,15 @@ impl<'a> Command<'a> {
             bin_path,
             shell,
             pid: 0,
+            available,
         }
     }
 
     pub(crate) fn execute(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        if !self.available {
+            println!("command not found: {}", self.pname);
+            return Ok(());
+        }
         if let Some(last) = self.commands.last_mut() {
             utils::trim_newline(last)
         };
