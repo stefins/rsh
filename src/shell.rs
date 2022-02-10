@@ -19,6 +19,7 @@ impl Shell {
             Ok(path) => path,
             Err(_) => panic!("$PATH not found"),
         };
+        env::set_var("SHELL", env::current_exe().unwrap());
         let chr = '$';
         let interrupter = utils::setup_interrupt_handler();
         Shell {
