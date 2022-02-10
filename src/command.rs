@@ -1,3 +1,4 @@
+use std::env;
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::exit;
@@ -45,7 +46,12 @@ impl<'a> Command<'a> {
             exit(0);
         }
         if self.pname == "cd" {
-            utils::change_dir(&self.commands[1])?
+            if self.commands.len() == 1 {
+                utils::change_dir(&env::var("HOME")?)?;
+            } else {
+                utils::change_dir(&self.commands[1])?
+            }
+            return Ok(());
         }
         let child = std::process::Command::new(&self.bin_path)
             .args(&self.commands[1..])

@@ -6,6 +6,7 @@ use std::{
 };
 
 use std::mem::MaybeUninit;
+use std::sync::mpsc;
 
 use libc::{
     chdir, kill, tcgetattr, tcsetattr, termios, ECHO, ICANON, ISIG, SIGINT, STDIN_FILENO, TCSAFLUSH,
@@ -14,7 +15,6 @@ use libc::{
 // This function setup a thread to handle ctrl+c INT's
 // The thread recieves a pid from a channel and send SIGINT to the pid
 pub(crate) fn setup_interrupt_handler() -> Sender<i32> {
-    use std::sync::mpsc;
     let (tx, rx): (Sender<i32>, Receiver<i32>) = mpsc::channel();
     ctrlc::set_handler(move || {
         if let Ok(pid) = rx.recv() {
@@ -40,11 +40,12 @@ pub(crate) fn trim_newline(s: &mut String) {
 // wrapper around chdir syscall
 pub(crate) fn change_dir(path: &str) -> Result<(), Box<dyn std::error::Error>> {
     env::set_var("OLDPWD", current_dir()?);
+    let path = CString::new(path)?;
     unsafe {
-        let path = CString::new(path)?;
         chdir(path.as_ptr());
-        Ok(())
     }
+    env::set_var("PWD", current_dir()?);
+    Ok(())
 }
 
 // Make the terminal to raw_mode
