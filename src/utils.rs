@@ -1,7 +1,10 @@
 use std::{
-    env,
     env::current_dir,
     ffi::CString,
+    fs::File,
+    io::{BufReader, Read},
+    os::unix::prelude::FromRawFd,
+    str,
     sync::mpsc::{Receiver, Sender},
 };
 
@@ -9,8 +12,11 @@ use std::mem::MaybeUninit;
 use std::sync::mpsc;
 
 use libc::{
-    chdir, kill, tcgetattr, tcsetattr, termios, ECHO, ICANON, ISIG, SIGINT, STDIN_FILENO, TCSAFLUSH,
+    chdir, kill, tcgetattr, tcsetattr, termios, ECHO, ICANON, SIGINT, STDIN_FILENO, TCSAFLUSH,
 };
+
+use crate::keyboard::Key;
+use crate::set_env;
 
 // This function setup a thread to handle ctrl+c INT's
 // The thread recieves a pid from a channel and send SIGINT to the pid
@@ -39,12 +45,14 @@ pub(crate) fn trim_newline(s: &mut String) {
 
 // wrapper around chdir syscall
 pub(crate) fn change_dir(path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    env::set_var("OLDPWD", current_dir()?);
+    set_env!("OLDPWD", current_dir()?);
     let path = CString::new(path)?;
     unsafe {
-        chdir(path.as_ptr());
+        if chdir(path.as_ptr()) != 0 {
+            println!("cd: no such directory: {}", &path.to_str()?);
+        }
     }
-    env::set_var("PWD", current_dir()?);
+    set_env!("PWD", current_dir()?);
     Ok(())
 }
 
@@ -55,7 +63,7 @@ pub(crate) fn enable_raw_mode() -> MaybeUninit<termios> {
         let mut raw = orig_termios;
         tcgetattr(STDIN_FILENO, raw.as_mut_ptr());
         orig_termios = raw;
-        (*raw.as_mut_ptr()).c_lflag &= !(ECHO | ICANON | ISIG);
+        (*raw.as_mut_ptr()).c_lflag &= !(ECHO | ICANON);
         tcsetattr(STDIN_FILENO, TCSAFLUSH, raw.as_mut_ptr());
     }
     orig_termios
@@ -66,4 +74,18 @@ pub(crate) fn disable_raw_mode(mut orig_termios: MaybeUninit<termios>) {
     unsafe {
         tcsetattr(STDIN_FILENO, TCSAFLUSH, orig_termios.as_mut_ptr());
     }
+}
+
+pub(crate) fn read_chars() -> Result<Key, Box<dyn std::error::Error>> {
+    let f = unsafe { File::from_raw_fd(0) };
+    let mut reader = BufReader::new(f);
+    let mut buffer = [0; 3];
+    reader.read(&mut buffer).unwrap();
+    Ok(match str::from_utf8(&buffer).unwrap() {
+        "\u{1b}[A" => Key::UpKey,
+        "\u{1b}[B" => Key::DownKey,
+        "\u{1b}[C" => Key::RightKey,
+        "\u{1b}[D" => Key::LeftKey,
+        _ => Key::OtherKey,
+    })
 }
