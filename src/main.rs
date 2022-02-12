@@ -1,4 +1,6 @@
 mod command;
+mod keyboard;
+mod macros;
 mod shell;
 mod utils;
 

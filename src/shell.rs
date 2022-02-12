@@ -1,5 +1,7 @@
 use std::io::BufRead;
 
+use crate::flush;
+use crate::set_env;
 use crate::utils;
 use std::env;
 use std::io;
@@ -19,7 +21,7 @@ impl Shell {
             Ok(path) => path,
             Err(_) => panic!("$PATH not found"),
         };
-        env::set_var("SHELL", env::current_exe().unwrap());
+        set_env!("SHELL", env::current_exe().unwrap());
         let chr = '$';
         let interrupter = utils::setup_interrupt_handler();
         Shell {
@@ -32,7 +34,7 @@ impl Shell {
     pub(crate) fn listen(&self) {
         loop {
             print!("\r{} ", self.chr);
-            io::stdout().flush().unwrap();
+            flush!();
             let mut command = String::new();
             let stdin = io::stdin();
             let mut handle = stdin.lock();
