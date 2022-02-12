@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process::exit;
 
 use crate::shell::Shell;
-use crate::utils;
+use crate::{flush, utils};
 
 #[derive(Clone, Debug)]
 pub(crate) struct Command<'a> {
@@ -14,6 +14,7 @@ pub(crate) struct Command<'a> {
     commands: Vec<String>,
     pid: u32,
     available: bool,
+    exit_code: i32,
 }
 
 impl<'a> Command<'a> {
@@ -39,14 +40,11 @@ impl<'a> Command<'a> {
             shell,
             pid: 0,
             available,
+            exit_code: 0,
         }
     }
 
     pub(crate) fn execute(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if !self.available {
-            println!("command not found: {}", self.pname);
-            return Ok(());
-        }
         if let Some(last) = self.commands.last_mut() {
             utils::trim_newline(last)
         };
@@ -61,6 +59,18 @@ impl<'a> Command<'a> {
             }
             return Ok(());
         }
+        if self.pname == "exit" {
+            if self.commands.len() == 1 {
+                exit(0);
+            } else {
+                let exit_code: i32 = self.commands[1].parse()?;
+                exit(exit_code);
+            }
+        }
+        if !self.available {
+            println!("command not found: {}", self.pname);
+            return Ok(());
+        }
         let child = std::process::Command::new(&self.bin_path)
             .args(&self.commands[1..])
             .spawn();
@@ -68,14 +78,40 @@ impl<'a> Command<'a> {
         self.pid = child.id();
         self.set_interrupt_handler();
         let output = child.wait_with_output()?;
+        self.exit_code = output.status.code().unwrap();
         io::stdout().write_all(&output.stdout)?;
         io::stderr().write_all(&output.stderr)?;
-        io::stdout().flush()?;
-        io::stderr().flush()?;
+        flush!();
         Ok(())
     }
 
     fn set_interrupt_handler(&self) {
         self.shell.interrupter.send(self.pid as i32).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use std::{thread::sleep, time::Duration};
+
+    use super::*;
+
+    #[test]
+    fn test_command_available() {
+        let shell = Shell::new();
+        let command1 = Command::new(&shell, String::from("true"));
+        let command2 = Command::new(&shell, String::from("true000"));
+        assert_eq!(command1.available, true);
+        assert_eq!(command2.available, false);
+    }
+
+    #[test]
+    fn test_exit_status() {
+        sleep(Duration::from_secs(1));
+        let shell = Shell::new();
+        let mut command = Command::new(&shell, String::from("false"));
+        command.execute().unwrap();
+        assert_eq!(command.exit_code, 1);
     }
 }
