@@ -5,24 +5,23 @@ use crate::set_env;
 use crate::utils;
 use std::env;
 use std::io;
-use std::io::Write;
 use std::sync::mpsc::Sender;
 
 #[derive(Clone, Debug)]
-pub struct Shell {
+pub struct Shell<'a> {
     pub path: String,
-    chr: char,
+    chr: &'a str,
     pub interrupter: Sender<i32>,
 }
 
-impl Shell {
+impl<'a> Shell<'a> {
     pub(crate) fn new() -> Self {
         let path = match env::var("PATH") {
             Ok(path) => path,
             Err(_) => panic!("$PATH not found"),
         };
         set_env!("SHELL", env::current_exe().unwrap());
-        let chr = '$';
+        let chr = "=>";
         let interrupter = utils::setup_interrupt_handler();
         Shell {
             path,

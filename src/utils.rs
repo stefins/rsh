@@ -15,8 +15,8 @@ use libc::{
     chdir, kill, tcgetattr, tcsetattr, termios, ECHO, ICANON, SIGINT, STDIN_FILENO, TCSAFLUSH,
 };
 
-use crate::keyboard::Key;
 use crate::set_env;
+use crate::{flush, keyboard::Key};
 
 // This function setup a thread to handle ctrl+c INT's
 // The thread recieves a pid from a channel and send SIGINT to the pid
@@ -74,6 +74,7 @@ pub(crate) fn disable_raw_mode(mut orig_termios: MaybeUninit<termios>) {
     unsafe {
         tcsetattr(STDIN_FILENO, TCSAFLUSH, orig_termios.as_mut_ptr());
     }
+    flush!();
 }
 
 pub(crate) fn read_chars() -> Result<Key, Box<dyn std::error::Error>> {

@@ -8,6 +8,7 @@ macro_rules! set_env {
 #[macro_export]
 macro_rules! flush {
     () => {
+        use std::io::Write;
         std::io::stdout().flush().unwrap();
         std::io::stderr().flush().unwrap();
     };

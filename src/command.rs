@@ -1,5 +1,5 @@
 use std::env;
-use std::io::{self, Write};
+use std::io;
 use std::path::Path;
 use std::process::exit;
 
@@ -8,7 +8,7 @@ use crate::{flush, utils};
 
 #[derive(Clone, Debug)]
 pub(crate) struct Command<'a> {
-    shell: &'a Shell,
+    shell: &'a Shell<'a>,
     bin_path: String,
     pname: String,
     commands: Vec<String>,
