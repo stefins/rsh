@@ -92,14 +92,16 @@ impl<'a> Command<'a> {
 
 #[cfg(test)]
 mod tests {
-
-    use std::{thread::sleep, time::Duration};
-
     use super::*;
+    use std::sync::{Arc, Mutex};
+
+    lazy_static! {
+        static ref SHELL: Arc<Mutex<Shell<'static>>> = Arc::new(Mutex::new(Shell::new()));
+    }
 
     #[test]
     fn test_command_available() {
-        let shell = Shell::new();
+        let shell = &*SHELL.lock().unwrap();
         let command1 = Command::new(&shell, String::from("true"));
         let command2 = Command::new(&shell, String::from("true000"));
         assert_eq!(command1.available, true);
@@ -108,8 +110,7 @@ mod tests {
 
     #[test]
     fn test_exit_status() {
-        sleep(Duration::from_secs(1));
-        let shell = Shell::new();
+        let shell = &*SHELL.lock().unwrap();
         let mut command = Command::new(&shell, String::from("false"));
         command.execute().unwrap();
         assert_eq!(command.exit_code, 1);
