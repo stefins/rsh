@@ -45,7 +45,7 @@ pub(crate) fn trim_newline(s: &mut String) {
 
 // wrapper around chdir syscall
 pub(crate) fn change_dir(path: &str) -> Result<i32, Box<dyn std::error::Error>> {
-    set_env!("OLDPWD", current_dir()?);
+    let old_pwd = current_dir()?;
     let path = CString::new(path)?;
     unsafe {
         if chdir(path.as_ptr()) != 0 {
@@ -53,6 +53,7 @@ pub(crate) fn change_dir(path: &str) -> Result<i32, Box<dyn std::error::Error>> 
             return Ok(1);
         }
     }
+    set_env!("OLDPWD", old_pwd);
     set_env!("PWD", current_dir()?);
     Ok(0)
 }
