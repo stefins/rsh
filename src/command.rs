@@ -55,7 +55,7 @@ impl<'a> Command<'a> {
             if self.commands.len() == 1 {
                 utils::change_dir(&env::var("HOME")?)?;
             } else {
-                utils::change_dir(&self.commands[1])?
+                self.exit_code = utils::change_dir(&self.commands[1])?
             }
             return Ok(());
         }
@@ -114,5 +114,18 @@ mod tests {
         let mut command = Command::new(&shell, String::from("false"));
         command.execute().unwrap();
         assert_eq!(command.exit_code, 1);
+    }
+
+    #[test]
+    fn test_cd() {
+        std::fs::create_dir("hello").unwrap();
+        let shell = &*SHELL.lock().unwrap();
+        let mut command1 = Command::new(shell, String::from("cd helo"));
+        let mut command2 = Command::new(shell, String::from("cd hello"));
+        command1.execute().unwrap();
+        command2.execute().unwrap();
+        assert_eq!(command1.exit_code, 1);
+        assert_eq!(command2.exit_code, 0);
+        std::fs::remove_dir("../hello").unwrap();
     }
 }

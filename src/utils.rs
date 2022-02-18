@@ -44,16 +44,17 @@ pub(crate) fn trim_newline(s: &mut String) {
 }
 
 // wrapper around chdir syscall
-pub(crate) fn change_dir(path: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub(crate) fn change_dir(path: &str) -> Result<i32, Box<dyn std::error::Error>> {
     set_env!("OLDPWD", current_dir()?);
     let path = CString::new(path)?;
     unsafe {
         if chdir(path.as_ptr()) != 0 {
             println!("cd: no such directory: {}", &path.to_str()?);
+            return Ok(1);
         }
     }
     set_env!("PWD", current_dir()?);
-    Ok(())
+    Ok(0)
 }
 
 // Make the terminal to raw_mode
