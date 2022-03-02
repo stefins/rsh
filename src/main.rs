@@ -5,8 +5,7 @@ mod shell;
 mod utils;
 use shell::Shell;
 
-#[allow(unused_imports)]
-#[macro_use]
+#[cfg_attr(test, macro_use)]
 extern crate lazy_static;
 
 fn main() {
