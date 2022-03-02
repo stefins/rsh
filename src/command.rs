@@ -1,5 +1,6 @@
 use std::env;
-use std::io;
+use std::fs::File;
+use std::io::{self, Write};
 use std::path::Path;
 use std::process::exit;
 
@@ -33,6 +34,7 @@ impl<'a> Command<'a> {
                 break;
             }
         }
+        Command::write_to_histfile(command);
         Self {
             commands,
             pname,
@@ -83,6 +85,22 @@ impl<'a> Command<'a> {
         io::stderr().write_all(&output.stderr)?;
         flush!();
         Ok(())
+    }
+
+    fn write_to_histfile(command: String) {
+        match env::var("HISTFILE") {
+            Ok(path) => {
+                let mut file = File::options()
+                    .read(true)
+                    .append(true)
+                    .write(true)
+                    .create(true)
+                    .open(path)
+                    .unwrap();
+                file.write(command.as_bytes()).unwrap();
+            }
+            _ => {}
+        };
     }
 
     fn set_interrupt_handler(&self) {
