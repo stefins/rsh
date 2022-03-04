@@ -1,10 +1,10 @@
-use std::io::BufRead;
-
 use crate::flush;
+use crate::keyboard::Key;
 use crate::set_env;
 use crate::utils;
+use crate::utils::enable_raw_mode;
+use crate::utils::read_chars;
 use std::env;
-use std::io;
 use std::sync::mpsc::Sender;
 
 #[derive(Clone, Debug)]
@@ -32,12 +32,28 @@ impl<'a> Shell<'a> {
 
     pub(crate) fn listen(&self) {
         loop {
-            print!("\r{} ", self.chr);
             flush!();
             let mut command = String::new();
-            let stdin = io::stdin();
-            let mut handle = stdin.lock();
-            handle.read_line(&mut command).expect("EOF");
+            enable_raw_mode();
+            loop {
+                print!("\r{} {command}",self.chr);
+                flush!();
+                // print!("\r{command}");
+                match read_chars() {
+                    Ok((Key::Enter, None)) => {
+                        println!();
+                        break;
+                    }
+                    Ok((_, Some(ch))) => {
+                        command.push(ch);
+                    }
+                    Ok((Key::Backspace,None)) => {
+                        command.pop();
+                    },
+                    Ok((_,None)) => {},
+                    Err(_) => panic!("Error Occured"),
+                }
+            }
             crate::command::Command::new(self, command)
                 .execute()
                 .unwrap();

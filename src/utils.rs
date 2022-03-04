@@ -1,9 +1,7 @@
 use std::{
     env::current_dir,
     ffi::CString,
-    fs::File,
-    io::{BufReader, Read},
-    os::unix::prelude::FromRawFd,
+    io::{self, Read},
     str,
     sync::mpsc::{Receiver, Sender},
 };
@@ -79,16 +77,16 @@ pub(crate) fn disable_raw_mode(mut orig_termios: MaybeUninit<termios>) {
     flush!();
 }
 
-pub(crate) fn read_chars() -> Result<Key, Box<dyn std::error::Error>> {
-    let f = unsafe { File::from_raw_fd(0) };
-    let mut reader = BufReader::new(f);
+pub(crate) fn read_chars() -> Result<(Key, Option<char>), Box<dyn std::error::Error>> {
     let mut buffer = [0; 3];
-    reader.read(&mut buffer).unwrap();
+    io::stdin().read(&mut buffer).unwrap();
     Ok(match str::from_utf8(&buffer).unwrap() {
-        "\u{1b}[A" => Key::UpKey,
-        "\u{1b}[B" => Key::DownKey,
-        "\u{1b}[C" => Key::RightKey,
-        "\u{1b}[D" => Key::LeftKey,
-        _ => Key::OtherKey,
+        "\u{1b}[A" => (Key::UpKey, None),
+        "\u{1b}[B" => (Key::DownKey, None),
+        "\u{1b}[C" => (Key::RightKey, None),
+        "\u{1b}[D" => (Key::LeftKey, None),
+        "\u{7f}\u{0}\u{0}" => (Key::Backspace, None),
+        "\n\u{0}\u{0}" => (Key::Enter, None),
+        val => (Key::OtherKey, val.chars().nth(0)),
     })
 }

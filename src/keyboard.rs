@@ -5,4 +5,6 @@ pub enum Key {
     LeftKey,
     RightKey,
     OtherKey,
+    Backspace,
+    Enter,
 }
