@@ -7,4 +7,5 @@ pub enum Key {
     OtherKey,
     Backspace,
     Enter,
+    Tab,
 }

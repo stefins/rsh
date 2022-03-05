@@ -87,6 +87,7 @@ pub(crate) fn read_chars() -> Result<(Key, Option<char>), Box<dyn std::error::Er
         "\u{1b}[D" => (Key::LeftKey, None),
         "\u{7f}\u{0}\u{0}" => (Key::Backspace, None),
         "\n\u{0}\u{0}" => (Key::Enter, None),
+        "\u{9}\u{0}\u{0}" => (Key::Tab, None),
         val => (Key::OtherKey, val.chars().nth(0)),
     })
 }
