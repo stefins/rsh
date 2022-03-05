@@ -8,4 +8,5 @@ pub enum Key {
     Backspace,
     Enter,
     Tab,
+    CtrlD,
 }

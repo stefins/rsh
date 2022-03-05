@@ -6,6 +6,7 @@ use crate::utils::disable_raw_mode;
 use crate::utils::enable_raw_mode;
 use crate::utils::read_chars;
 use std::env;
+use std::process::exit;
 use std::sync::mpsc::Sender;
 
 #[derive(Clone, Debug)]
@@ -51,6 +52,11 @@ impl<'a> Shell<'a> {
                         print!("\r{}", " ".repeat(command.len() + 3));
                         flush!();
                         command.pop();
+                    }
+                    Ok((Key::CtrlD, None)) => {
+                        println!("bye....");
+                        disable_raw_mode(default_mode);
+                        exit(0);
                     }
                     Ok((_, None)) => {}
                     Err(_) => panic!("Error Occured"),
