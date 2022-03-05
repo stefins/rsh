@@ -88,18 +88,15 @@ impl<'a> Command<'a> {
     }
 
     fn write_to_histfile(command: String) {
-        match env::var("HISTFILE") {
-            Ok(path) => {
-                let mut file = File::options()
-                    .read(true)
-                    .append(true)
-                    .write(true)
-                    .create(true)
-                    .open(path)
-                    .unwrap();
-                file.write(command.as_bytes()).unwrap();
-            }
-            _ => {}
+        if let Ok(path) = env::var("HISTFILE") {
+            let mut file = File::options()
+                .read(true)
+                .append(true)
+                .write(true)
+                .create(true)
+                .open(path)
+                .unwrap();
+            file.write(command.as_bytes()).unwrap();
         };
     }
 

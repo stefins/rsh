@@ -2,6 +2,7 @@ use crate::flush;
 use crate::keyboard::Key;
 use crate::set_env;
 use crate::utils;
+use crate::utils::disable_raw_mode;
 use crate::utils::enable_raw_mode;
 use crate::utils::read_chars;
 use std::env;
@@ -34,11 +35,10 @@ impl<'a> Shell<'a> {
         loop {
             flush!();
             let mut command = String::new();
-            enable_raw_mode();
+            let default_mode = enable_raw_mode();
             loop {
-                print!("\r{} {command}",self.chr);
+                print!("\r{} {command}", self.chr);
                 flush!();
-                // print!("\r{command}");
                 match read_chars() {
                     Ok((Key::Enter, None)) => {
                         println!();
@@ -47,13 +47,16 @@ impl<'a> Shell<'a> {
                     Ok((_, Some(ch))) => {
                         command.push(ch);
                     }
-                    Ok((Key::Backspace,None)) => {
+                    Ok((Key::Backspace, None)) => {
+                        print!("\r{}", " ".repeat(command.len() + 3));
+                        flush!();
                         command.pop();
-                    },
-                    Ok((_,None)) => {},
+                    }
+                    Ok((_, None)) => {}
                     Err(_) => panic!("Error Occured"),
                 }
             }
+            disable_raw_mode(default_mode);
             crate::command::Command::new(self, command)
                 .execute()
                 .unwrap();
