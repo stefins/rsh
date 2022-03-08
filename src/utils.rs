@@ -92,3 +92,16 @@ pub(crate) fn read_chars() -> Result<(Key, Option<char>), Box<dyn std::error::Er
         val => (Key::OtherKey, val.chars().nth(0)),
     })
 }
+
+pub(crate) fn get_all_binary_from_path() -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let mut binaries: Vec<String> = Vec::new();
+    if let Ok(path) = std::env::var("PATH") {
+        for p in path.split(':') {
+            for binary in std::fs::read_dir(p)? {
+                let binary = binary?;
+                binaries.push(binary.file_name().into_string().unwrap())
+            }
+        }
+    }
+    Ok(binaries)
+}
