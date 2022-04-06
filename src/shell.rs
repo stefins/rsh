@@ -4,6 +4,7 @@ use crate::set_env;
 use crate::utils;
 use crate::utils::disable_raw_mode;
 use crate::utils::enable_raw_mode;
+use crate::utils::get_all_binary_from_path;
 use crate::utils::read_chars;
 use std::env;
 use std::process::exit;
@@ -36,6 +37,7 @@ impl<'a> Shell<'a> {
         loop {
             flush!();
             let mut command = String::new();
+            let all_commands = get_all_binary_from_path().unwrap();
             let default_mode = enable_raw_mode();
             loop {
                 print!("\r{} {command}", self.chr);
@@ -44,6 +46,14 @@ impl<'a> Shell<'a> {
                     Ok((Key::Enter, None)) => {
                         println!();
                         break;
+                    }
+                    Ok((Key::Tab, None)) => {
+                        println!();
+                        all_commands.iter().for_each(|cmd| {
+                            if cmd.starts_with(&command) {
+                                println!("{}", cmd);
+                            }
+                        })
                     }
                     Ok((_, Some(ch))) => {
                         command.push(ch);
